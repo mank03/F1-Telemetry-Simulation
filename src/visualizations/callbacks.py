@@ -1,7 +1,7 @@
 # This file defines and registers all callback function
 from datetime import datetime
-from dash.dependencies import Input, Output, State
-from tkinter import ALL
+from dash.dependencies import Input, Output, State, ALL
+# from tkinter import ALL
 from dash import dcc, html
 
 import dash
@@ -37,6 +37,7 @@ y_coords_4 = [point["y"] for point in telemetry_data["Driver 4"]["location"]]
 # rpm_55 = [point["rpm"] for point in car_data_55]  # speed of driver 55
 # time_stamps_55 = [point["date"] for point in telemetry_driver_55]  # ISO-format timestamps
 
+
 def register_callbacks(app):
     @app.callback(
         Output("selected-driver", "data"),
@@ -45,17 +46,20 @@ def register_callbacks(app):
         prevent_initial_call=True
     )
     def select_driver(n_clicks, current_selection):
-        # Debugging
         ctx = dash.callback_context
         print("Callback Context:", ctx)
         if not ctx.triggered:
-            print("No driver clicked yet.")
-            return current_selection  # Return the current selection if no click is detected
+            return current_selection
 
-        clicked_driver_id = ctx.triggered[0]["prop_id"].split(".")[0]
-        print("Clicked Driver ID:", clicked_driver_id)
-        return clicked_driver_id if clicked_driver_id else current_selection
-    
+        # Extract the clicked component's ID
+        triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        triggered_id_dict = eval(triggered_id)  # Convert string to dictionary
+        index = triggered_id_dict.get("index")  # Get the index
+        print("Clicked Driver ID:", index)
+        # Map the index to the driver name (match `leaderboard_data` to `telemetry_data`)
+        leaderboard_data = ["Driver 55", "Driver 4", "Driver 16"]  # Ordered list of drivers
+        return leaderboard_data[index] if index is not None else current_selection
+        
     @app.callback(
         [
             Output("circuit-map", "figure"),
@@ -118,8 +122,8 @@ def register_callbacks(app):
         
         # Leaderboard content
         leaderboard_data = [
-            {"name": "Carlos Sainz", "time": "1:23.456", "id": "Driver 55"},
-            {"name": "Lando Norris", "time": "1:24.123", "id": "Driver 4"},
+            {"name": "Driver 55", "time": "1:23.456", "id": "Driver 55"},
+            {"name": "Driver 4", "time": "1:24.123", "id": "Driver 4"},
             {"name": "Driver 16", "time": "1:24.789", "id": "Driver 16"},
         ]
         leaderboard_content = [
