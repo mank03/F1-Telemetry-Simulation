@@ -124,3 +124,23 @@ def register_callbacks(app):
             title="Circuit Map"
         ))
         return updated_map, speed_55, throttle_55, rpm_55, leaderboard_content
+    
+
+
+
+
+
+    def select_driver(n_clicks, current_selection):
+        ctx = dash.callback_context
+        print("Callback Context:", ctx)
+        if not ctx.triggered:
+            return current_selection
+
+        # Extract the clicked component's ID
+        triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+        triggered_id_dict = eval(triggered_id)  # Convert string to dictionary
+        index = triggered_id_dict.get("index")  # Get the index
+        print("Clicked Driver ID:", index)
+        # Map the index to the driver name (match `leaderboard_data` to `telemetry_data`)
+        leaderboard_data = ["Driver 4", "Driver 55", "Driver 16"]  # Ordered list of drivers
+        return leaderboard_data[index] if index is not None else current_selection

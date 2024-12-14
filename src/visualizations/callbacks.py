@@ -20,15 +20,20 @@ telemetry_data = {
     }
 }
 
+# Helper function to extract x and y coordinates
+def get_driver_coordinates(driver_number, telemetry_data):
+    location_data = telemetry_data[driver_number]["location"]
+    x_coords = [point["x"] for point in location_data]
+    y_coords = [point["y"] for point in location_data]
+    return x_coords, y_coords
+
+# Extract coordinates for each driver using the helper function
+x_coords_4, y_coords_4 = get_driver_coordinates("Driver 4", telemetry_data)
+x_coords_55, y_coords_55 = get_driver_coordinates("Driver 55", telemetry_data)
 
 # # Extract data for visualization
 # x_coords_55 = [point["x"] for point in telemetry_driver_55]
 # y_coords_55 = [point["y"] for point in telemetry_driver_55]
-
-# Extract data for visualization
-x_coords_4 = [point["x"] for point in telemetry_data["Driver 4"]["location"]]
-y_coords_4 = [point["y"] for point in telemetry_data["Driver 4"]["location"]]
-
 
 # # Fetch the latest speed data for driver 55
 # car_data_55 = get_car_data(9159, 55)
@@ -47,10 +52,13 @@ def register_callbacks(app):
     )
     def select_driver(n_clicks, current_selection):
         ctx = dash.callback_context
-        print("Callback Context:", ctx)
-        if not ctx.triggered:
+        print("n_clicks = ", n_clicks)
+        # This ensures that we only process the click when the leaderboard button is clicked
+        if ctx.triggered and not any(n_clicks_value > 0 for n_clicks_value in n_clicks):
+            # This means no leaderboard button was clicked, so we keep the current selection
+            print("1. current selection (not clicked):", current_selection)
             return current_selection
-
+        print("2. current selection:", current_selection)
         # Extract the clicked component's ID
         triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
         triggered_id_dict = eval(triggered_id)  # Convert string to dictionary
@@ -76,8 +84,9 @@ def register_callbacks(app):
     )
     def update_driver_position(n_intervals, selected_driver):
         # Default to Driver 55 if no driver is selected
-        selected_driver = selected_driver or "Carlos Sainz"
-
+        if selected_driver not in telemetry_data:
+            print(f"Invalid driver selected: {selected_driver}")
+        
         # Fetch telemetry data for the selected driver
         location_data = telemetry_data[selected_driver]["location"]
         car_data = telemetry_data[selected_driver]["car"]
@@ -91,6 +100,7 @@ def register_callbacks(app):
         
        # Get the current timestamp
         time_index = 15000 + n_intervals % len(time_stamps)
+        time_index_55 = 15000 + n_intervals % len(x_coords_55)
         time_index_4 = 15000 + n_intervals % len(x_coords_4)
         current_timestamp = time_stamps[time_index]
 
@@ -147,10 +157,10 @@ def register_callbacks(app):
                 line=dict(color="blue", width=2)
             ),
             go.Scattergl(  # Use scattergl for the driver marker
-                x=[x_position], 
-                y=[y_position], 
+                x=[x_coords_55[time_index_55]], 
+                y=[y_coords_55[time_index_55]], 
                 mode="markers", 
-                name=selected_driver,
+                name="Carlos Sainz",
                 marker=dict(size=10, color="red")
             ),
             go.Scattergl(  # Use scattergl for the other driver

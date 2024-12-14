@@ -48,7 +48,6 @@ def create_layout():
                         ),
                         style={
                             'flex': '1',
-                            'backgroundColor': '#white',
                             'padding': '10px',
                             'borderRadius': '5px'
                         }
@@ -98,18 +97,18 @@ def create_layout():
                             label='THROTTLE',
                             max=100,
                             min=0,
-                            color="#20242c"
+                            color="blue"
                             # style={'width': '50px', 'height': '200px'}
                         ),
                         # style={'textAlign': 'center'}
                     )
                 ]
             ),
+            dcc.Store(id="selected-driver", data="Driver 55"),  # Default selected driver
             dcc.Interval(  # Interval component for updates
                 id='interval-component',
                 interval=500,  # Time interval in milliseconds
                 n_intervals=0
-            ),
-            dcc.Store(id="selected-driver", data="Driver 55")  # Default selected driver
+            )
         ]
     )
