@@ -1,8 +1,14 @@
+/* Add this at the beginning of your CSS file */
+@font-face {
+    font-family: 'FormulaOne'; /* This is the name you'll use in the font-family */
+    src: url('Formula1-Regular.otf') format('opentype'); /* Ensure the path matches the font file's location */
+}
+
 /* styles.css */
 body {
     background-color: #20242c; /* Set the background color of the entire app */
     color: white; /* Set the default text color to white */
-    font-family: Arial, sans-serif; /* Set the default font family */
+    font-family: 'FormulaOne'; /* Set the default font family */
 }
 
 /* Styling for the title */

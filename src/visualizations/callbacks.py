@@ -6,6 +6,7 @@ from dash.dependencies import Input, Output, State, ALL
 from dash import dcc, html
 
 import dash
+from matplotlib import figure
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
 from telemetry import get_location_data, get_car_data, get_lap_data
@@ -128,19 +129,32 @@ def register_callbacks(app):
             Output("rpm-display", "value"),
             Output("lap-number-display", "value"),
             Output("time-stamp-display", "value"),
-            Output("leaderboard-content", "children")
+            Output("leaderboard-content", "children"),
+            Output("saved-zoom", "data"),  # Store zoom state in a dcc.Store
         ],  
         # Output for speed display
         [
             Input('interval-component', 'n_intervals'),
-            Input("selected-driver", "data")
-        ]
+            Input("selected-driver", "data"),
+            Input("circuit-map", "relayoutData"),  # Capture user zoom/pan changes
+        ],
+        State("saved-zoom", "data"),  # Retrieve the saved zoom state
     )
-    def update_driver_position(n_intervals, selected_driver):
+    def update_driver_position(n_intervals, selected_driver, relayout_data, saved_zoom):
         # Default to Driver 55 if no driver is selected
         if selected_driver not in telemetry_data:
             print(f"Invalid driver selected: {selected_driver}")
         
+        # Handle zoom/pan persistence
+        if relayout_data:
+        # Update saved zoom state if the user interacts with the map
+            saved_zoom = {
+                "xaxis.range[0]": relayout_data.get("xaxis.range[0]"),
+                "xaxis.range[1]": relayout_data.get("xaxis.range[1]"),
+                "yaxis.range[0]": relayout_data.get("yaxis.range[0]"),
+                "yaxis.range[1]": relayout_data.get("yaxis.range[1]"),
+        }
+
         # Fetch telemetry data for the selected driver
         location_data = telemetry_data[selected_driver]["location"]
         car_data = telemetry_data[selected_driver]["car"]
@@ -311,4 +325,11 @@ def register_callbacks(app):
         )
         # Lap number update
         # lap_number_text = f"Lap #: {lap_number}"
-        return updated_map, speed, throttle, brake, rpm, current_lap, current_timestamp, leaderboard_content
+            # Apply saved zoom/pan state if available
+        if saved_zoom:
+            updated_map.update_layout(
+                xaxis_range=[saved_zoom.get("xaxis.range[0]"), saved_zoom.get("xaxis.range[1]")],
+                yaxis_range=[saved_zoom.get("yaxis.range[0]"), saved_zoom.get("yaxis.range[1]")],
+        )
+
+        return updated_map, speed, throttle, brake, rpm, current_lap, current_timestamp, leaderboard_content, saved_zoom

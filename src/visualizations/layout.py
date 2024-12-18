@@ -44,7 +44,7 @@ def create_layout():
                     html.Div(  # Circuit map container
                         dcc.Graph(
                             id="circuit-map",
-                            config={'displayModeBar': False},
+                            config={'displayModeBar': False, "scrollZoom": True},
                             style={'flex': '1', 'background-color': '#20242c'}
                         ),
                         style={
@@ -127,6 +127,7 @@ def create_layout():
                 ]
             ),
             dcc.Store(id="selected-driver", data="Driver 55"),  # Default selected driver
+            dcc.Store(id="saved-zoom", data={}),
             dcc.Interval(  # Interval component for updates
                 id='interval-component',
                 interval=250,  # Time interval in milliseconds
