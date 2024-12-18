@@ -65,7 +65,6 @@ def get_driver_coordinates(driver_number, telemetry_data):
     x_coords = [point["x"] for point in location_data]
     y_coords = [point["y"] for point in location_data]
 
-    return x_coords, y_coords
     # # Convert each point to geospatial coordinates
     # latitudes = []
     # longitudes = []
@@ -73,8 +72,7 @@ def get_driver_coordinates(driver_number, telemetry_data):
     #     latitude, longitude = cartesian_to_geospatial(x, y)
     #     latitudes.append(latitude)
     #     longitudes.append(longitude)
-
-    # return latitudes, longitudes
+    return x_coords, y_coords
 
 # Extract coordinates for each driver using the helper function
 x_coords_4, y_coords_4   = get_driver_coordinates("Driver 4", telemetry_data)
@@ -140,7 +138,7 @@ def register_callbacks(app):
         location_data = telemetry_data[selected_driver]["location"]
         car_data = telemetry_data[selected_driver]["car"]
 
-        
+
 
         # Extract data for visualization
         x_coords = [point["x"] for point in location_data]
@@ -173,9 +171,13 @@ def register_callbacks(app):
 
         x_position = x_coords[time_index] + fraction * (x_coords[next_time_index] - x_coords[time_index])
         y_position = y_coords[time_index] + fraction * (y_coords[next_time_index] - y_coords[time_index])
+        
+        lat_55, lon_55 = cartesian_to_geospatial(x_coords_55[time_index_55], y_coords_55[time_index_55])
+        lat_path, lon_path = zip(*[cartesian_to_geospatial(x, y) for x, y in zip(x_coords_55, y_coords_55)])
+
 
         # Print current positions for debugging
-        print(f"Selected driver - #: {driver_number}, lat: {x_coords_55[time_index]}, lon: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, rpm_55: {rpm}")
+        print(f"Selected driver - #: {driver_number}, lat: {lat_55}, x: {x_coords_55[time_index]}, lon: {lon_55}, y: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, rpm_55: {rpm}")
         # print(f"Driver 4 - x: {x_coords[time_index]}, y: {y_coords[time_index]}")
         # Example leaderboard data (replace with actual data source)
         
@@ -197,71 +199,65 @@ def register_callbacks(app):
             )
             for i, entry in enumerate(leaderboard_data)
         ]
+
+
+
         # Here you can update the map with actual data and driver positions
         updated_map = go.Figure(
             data=[
+                # Add the line showing the driver's path
+                go.Scattermapbox(
+                    lat=[x_coords_55[time_index_55]],  # Latitude for the path
+                    lon=[y_coords_55[time_index_55]],  # Longitude for the path
+                    mode="lines",  # Only lines for the path
+                    name="Driver 55 Path",
+                    line=dict(width=3, color="blue"),  # Customize line style
+                ),
+                go.Scattermapbox(
+                    lat=[lat_55],  # Example latitude of a driver (replace with actual)
+                    lon=[lon_55],  # Example longitude (replace with actual)
+                    mode="markers",
+                    name="Carlos Sainz",
+                    marker=dict(size=10, color="red"),
+                ),
                 # go.Scattermapbox(
-                # lat=x_coords_55,  # Example latitude of a driver (replace with actual)
-                # lon=y_coords_55,  # Example longitude (replace with actual)
-                # mode="markers",
-                # marker=dict(size=4, color="red")
-                # ),
-                # go.Scattermapbox(
-                #     lat=x_coords_55,
-                #     lon=y_coords_55,
+                #     lat=line_lats,
+                #     lon=line_lons,
                 #     mode="lines",
                 #     line=dict(width=2, color="red"),
                 #     name="Track"
                 # ),
-                go.Scattergl(  # Use scattergl for better performance with frequent updates
-                x=x_coords_55, 
-                y=y_coords_55, 
-                mode="lines", 
-                name="Circuit",
-                line=dict(color="white", width=3)
-                ),
-                go.Scattergl(  # Use scattergl for the other driver
-                x=[x_coords_55[time_index_55]], 
-                y=[y_coords_55[time_index_55]], 
-                mode="markers", 
-                name="Carlos Sainz",
-                marker=dict(size=10, color="red")
-                ),
-                go.Scattergl(  # Use scattergl for the other driver
-                x=[x_coords_4[time_index_4]], 
-                y=[y_coords_4[time_index_4]], 
-                mode="markers", 
-                name="Lando Norris",
-                marker=dict(size=10, color="orange")
-                )
+                # go.Scattergl(  # Use scattergl for better performance with frequent updates
+                # y=x_coords_55, 
+                # x=y_coords_55, 
+                # mode="lines", 
+                # name="Circuit",
+                # line=dict(color="blue", width=2)
+                # ),
+                # go.Scattergl(  # Use scattergl for the other driver
+                # x=[x_coords_4[time_index_4]], 
+                # y=[y_coords_4[time_index_4]], 
+                # mode="markers", 
+                # name="Lando Norris",
+                # marker=dict(size=10, color="orange")
+                # ),
+                # go.Scattergl(  # Use scattergl for the other driver
+                # y=[x_coords_55[time_index_55]], 
+                # x=[y_coords_55[time_index_55]], 
+                # mode="markers", 
+                # name="Carlos Sainz",
+                # marker=dict(size=10, color="red")
+                # )
             ],
             layout=go.Layout(
-                plot_bgcolor='#20242c',  # Background color of the plot area (inside the graph)
-                paper_bgcolor='#20242c',  # Background color outside the graph
-                xaxis=dict(
-                    title=None,
-                    showgrid=False,  # Hide the grid lines on the x-axis
-                    zeroline=False,  # Hide the zero line
-                    showticklabels=False
+                mapbox=dict(
+                    accesstoken=MAPBOX_ACCESS_TOKEN,  # Use your Mapbox token
+                    center=dict(lat=1.2906047141616643, lon=103.8572531333833),  # Map center (update with actual circuit center)
+                    zoom=12,  # Zoom level (adjust for the circuit)
+                    style=MAPBOX_STYLE_URL  # Mapbox streets style for Google-like look
                 ),
-                yaxis=dict(
-                    title=None,
-                    showgrid=False,  # Hide the grid lines on the y-axis
-                    zeroline=False,  # Hide the zero line
-                    showticklabels=False
-                ),
-                font=dict(color='white'),  # Font color for axes and title
-                title="Circuit Map"
+                margin={"r":0,"t":0,"l":0,"b":0},
+                # paper_bgcolor="#20242c",
             )
-            # layout=go.Layout(
-            #     mapbox=dict(
-            #         accesstoken=MAPBOX_ACCESS_TOKEN,  # Use your Mapbox token
-            #         center=dict(lat=1.2906047141616643, lon=103.8572531333833),  # Map center (update with actual circuit center)
-            #         zoom=13,  # Zoom level (adjust for the circuit)
-            #         style=MAPBOX_STYLE_URL  # Mapbox streets style for Google-like look
-            #     ),
-            #     margin={"r":0,"t":0,"l":0,"b":0},
-            #     # paper_bgcolor="#20242c",
-            # )
         )
         return updated_map, speed, throttle, rpm, leaderboard_content

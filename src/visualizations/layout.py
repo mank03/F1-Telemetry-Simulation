@@ -28,7 +28,7 @@ def create_layout():
                     html.Div(  # Leaderboard container
                         id="leaderboard-container",
                         style={
-                            'backgroundColor': '#white',
+                            'backgroundColor': '#black',
                             'padding': '0px',
                             'borderRadius': '5px',
                             'width': '250px',
@@ -44,12 +44,13 @@ def create_layout():
                         dcc.Graph(
                             id="circuit-map",
                             config={'displayModeBar': False},
-                            style={'flex': '1'}
+                            style={'flex': '1', 'background-color': '#20242c'}
                         ),
                         style={
                             'flex': '1',
-                            'padding': '10px',
-                            'borderRadius': '5px'
+                            'padding': '0px',
+                            'borderRadius': '0px',
+                            'background-color': '#20242c'
                         }
                     )
                 ]

@@ -1,3 +1,4 @@
+import json
 import dash
 from dash import dcc, html
 import plotly.graph_objects as go
@@ -8,35 +9,13 @@ app = dash.Dash(__name__)
 MAPBOX_STYLE_URL = "mapbox://styles/mkonnur/cm4omuz6e008m01s8446k9r6n"
 MAPBOX_ACCESS_TOKEN = "pk.eyJ1IjoibWtvbm51ciIsImEiOiJjbTRvaWNmankwazByMm1xNG5teHF6dG54In0.jCPJgwqG3medIN6WRrY9XA"
 
-geojson_data = {
-    "type": "FeatureCollection",
-    "name": "sg-2008",
-    "bbox": [103.851563, 1.286566, 103.864425, 1.294899],
-    "features": [
-        {
-            "type": "Feature",
-            "properties": {
-                "id": "sg-2008",
-                "Location": "Singapore",
-                "Name": "Marina Bay Street Circuit",
-                "opened": 2008,
-                "firstgp": 2008,
-                "length": 4928,
-                "altitude": 18,
-            },
-            "bbox": [103.851563, 1.286566, 103.864425, 1.294899],
-            "geometry": {
-                "type": "LineString",
-                "coordinates": [
-                    [103.864144, 1.291728],
-                    [103.8644, 1.289773],
-                    [103.864425, 1.28952],
-                    # Add remaining coordinates here...
-                ],
-            },
-        }
-    ],
-}
+# Load GeoJSON data from file
+with open("singapore.geojson", "r") as file:
+    geojson_data = json.load(file)
+
+# Extract line coordinates from GeoJSON
+line_coordinates = geojson_data["features"][0]["geometry"]["coordinates"]
+line_lons, line_lats = zip(*line_coordinates)
 
 # Extract line coordinates from GeoJSON
 line_coordinates = geojson_data["features"][0]["geometry"]["coordinates"]
@@ -62,7 +41,7 @@ map_figure.update_layout(
         "style": MAPBOX_STYLE_URL,
         "accesstoken": MAPBOX_ACCESS_TOKEN,
         "center": {"lat": 1.2914199488663753, "lon": 103.85980662254117},
-        "zoom": 16,
+        "zoom": 15,
     },
     margin={"l": 0, "r": 0, "t": 0, "b": 0},
 )
