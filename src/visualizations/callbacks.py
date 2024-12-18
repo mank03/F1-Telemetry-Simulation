@@ -127,7 +127,11 @@ def register_callbacks(app):
             Output("throttle-display", "value"),
             Output("brake-display", "value"),
             Output("rpm-display", "value"),
-            Output("lap-number-display", "value"),
+            Output("lap-number-display", "children"),
+            Output("lap-duration-display", "children"),
+            Output("duration-sector-one-display", "children"),
+            Output("duration-sector-two-display", "children"),
+            Output("duration-sector-three-display", "children"),
             Output("time-stamp-display", "value"),
             Output("leaderboard-content", "children"),
             Output("saved-zoom", "data"),  # Store zoom state in a dcc.Store
@@ -167,12 +171,15 @@ def register_callbacks(app):
         y_coords = [point["y"] for point in location_data]
         time_stamps = [point["date"] for point in location_data]
         lap_time_stamps = [point["date_start"] for point in lap_data]
-
+        lap_duration = [point["lap_duration"] for point in lap_data]
+        duration_sector_one = [point["duration_sector_1"] for point in lap_data]
+        duration_sector_two = [point["duration_sector_2"] for point in lap_data]
+        duration_sector_three = [point["duration_sector_3"] for point in lap_data]
         # time_stamps = lap_time_stamps
 
         
        # Get the current timestamp
-        time_index = 0 + n_intervals % len(time_stamps)
+        time_index = 1000 + n_intervals % len(time_stamps)
         lap_time_index = n_intervals % len(time_stamps)
 
         time_index_55 = 15000 + n_intervals % len(x_coords_55)
@@ -183,7 +190,7 @@ def register_callbacks(app):
         print("time_index_55 = ", time_index_55)
         print("time_index_4 = ", time_index_4)
         print("current_timestamp = ", time_stamps[time_index])
-        print("lap_current_timestamp = ", lap_time_stamps)
+        # print("lap_current_timestamp = ", lap_time_stamps)
         
         # Ensure all elements in `lap_time_stamps` are strings and valid ISO format timestamps
         valid_lap_time_stamps = [
@@ -212,8 +219,23 @@ def register_callbacks(app):
             else:
                 break  # Exit loop once we've passed the current timestamp
 
+        if lap_duration[current_lap] == None:
+            lap_duration[current_lap] = "00:00.00"
+
+        if duration_sector_one[current_lap]  == None:
+            duration_sector_one[current_lap] = "00:00.00"
+
+        if duration_sector_two[current_lap]  == None:
+            duration_sector_two[current_lap] = "00:00.00"
+
+        if duration_sector_three[current_lap]  == None:
+            duration_sector_three[current_lap] = "00:00.00"
+
         # Output the result
-        print(f"The driver is currently on lap {current_lap}.")
+        print(f"The driver is currently on lap {current_lap} and lap duration is {lap_duration[current_lap]}.")
+        
+        print(f"Sector #1: {duration_sector_one[current_lap]}, Sector #2: {duration_sector_two[current_lap]}, Sector #3: {duration_sector_three[current_lap]}.")
+
 
         closest_data = min(
             car_data,
@@ -332,4 +354,4 @@ def register_callbacks(app):
                 yaxis_range=[saved_zoom.get("yaxis.range[0]"), saved_zoom.get("yaxis.range[1]")],
         )
 
-        return updated_map, speed, throttle, brake, rpm, current_lap, current_timestamp, leaderboard_content, saved_zoom
+        return updated_map, speed, throttle, brake, rpm, f"Lap:\t{current_lap}", f"Lap Duration:\t{lap_duration[current_lap]}", f"Sector #1:    {duration_sector_one[current_lap]}", f"Sector #2:    {duration_sector_two[current_lap]}", f"Sector #3:   {duration_sector_three[current_lap]}", current_timestamp, leaderboard_content, saved_zoom

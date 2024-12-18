@@ -119,19 +119,49 @@ def create_layout():
                         )
                         # style={'textAlign': 'center'}
                     ),
-                    html.Div(  # Lap number display beside brake
-                    children=[
-                        dcc.Input(id="lap-number-display", type="text", value="Lap: 0", disabled=True)
-                    ]
-                    )
+                    html.Div(  # Lap display container
+                        children=[
+                            html.Div(
+                                html.H3("Lap: 0", id="lap-number-display", style={"textAlign": "left", "color": "white"}),
+                                style={"marginBottom": "1px"}
+                            ),
+                            html.Div(
+                                html.H5("Lap Duration: 0:00.00", id="lap-duration-display", style={"textAlign": "left", "color": "white"}),
+                                style={"marginBottom": "1px"} 
+                            ),
+                            html.Div(
+                                html.H5("Sector #1: 0:00.00", id="duration-sector-one-display", style={"textAlign": "left", "color": "white"}),
+                                style={"marginBottom": "1px"}  
+                            ),
+                            html.Div(
+                                html.H5("Sector #2: 0:00.00", id="duration-sector-two-display", style={"textAlign": "left", "color": "white"}),
+                                style={"marginBottom": "1px"}
+                            ),
+                            html.Div(
+                                html.H5("Sector #3: 0:00.00", id="duration-sector-three-display", style={"textAlign": "left", "color": "white"}),
+                                style={"marginBottom": "1px"}
+                            ),
+                        ],
+                            style=
+                            {
+                                "display": "flex",
+                                "flexDirection": "column",
+                                "alignItems": "left",
+                                "width": "225px",  # Updated width for the container
+                                "padding": "7px",  # Add padding for better spacing inside the container
+                                "backgroundColor": "#2c2f36",  # Background color for better contrast with shadow
+                                "borderRadius": "10px",  # Rounded corners
+                                "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)"  # Shadow effect
+                            }
+                    ),
                 ]
             ),
             dcc.Store(id="selected-driver", data="Driver 55"),  # Default selected driver
             dcc.Store(id="saved-zoom", data={}),
             dcc.Interval(  # Interval component for updates
                 id='interval-component',
-                interval=250,  # Time interval in milliseconds
-                n_intervals=500
+                interval=300,  # Time interval in milliseconds
+                n_intervals=1
             )
         ]
     )
