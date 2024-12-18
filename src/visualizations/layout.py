@@ -37,7 +37,8 @@ def create_layout():
                         },
                         children=[
                             html.H4("Leaderboard", style={'textAlign': 'center'}),
-                            html.Div(id="leaderboard-content")  # Populated by callback
+                            html.Div(id="leaderboard-content"),  # Populated by callback
+                            dcc.Input(id="time-stamp-display", type="text", value="Time: ", disabled=True)
                         ]
                     ),
                     html.Div(  # Circuit map container
@@ -98,18 +99,38 @@ def create_layout():
                             label='THROTTLE',
                             max=100,
                             min=0,
-                            color="blue"
                             # style={'width': '50px', 'height': '200px'}
                         ),
                         # style={'textAlign': 'center'}
+                    ),
+                    html.Div(  # Brake Bar container
+                        daq.GraduatedBar(
+                            showCurrentValue=False,
+                            vertical=True,
+                            id="brake-display",
+                            value=0,
+                            step=100,
+                            label='BRAKE',
+                            max=100,
+                            min=0,
+                            color="red",
+                            
+                            # style={'width': '50px', 'height': '200px'}
+                        )
+                        # style={'textAlign': 'center'}
+                    ),
+                    html.Div(  # Lap number display beside brake
+                    children=[
+                        dcc.Input(id="lap-number-display", type="text", value="Lap: 0", disabled=True)
+                    ]
                     )
                 ]
             ),
             dcc.Store(id="selected-driver", data="Driver 55"),  # Default selected driver
             dcc.Interval(  # Interval component for updates
                 id='interval-component',
-                interval=500,  # Time interval in milliseconds
-                n_intervals=0
+                interval=250,  # Time interval in milliseconds
+                n_intervals=500
             )
         ]
     )

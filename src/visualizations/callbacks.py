@@ -8,7 +8,7 @@ from dash import dcc, html
 import dash
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
-from telemetry import get_location_data, get_car_data
+from telemetry import get_location_data, get_car_data, get_lap_data
 
 # Mapbox access token (replace with your token)
 MAPBOX_STYLE_URL = "mapbox://styles/mkonnur/cm4omuz6e008m01s8446k9r6n"
@@ -34,12 +34,14 @@ line_lons, line_lats = zip(*line_coordinates)
 # Fetch telemetry data
 telemetry_data = {
     "Driver 55": {
-        "location": get_location_data(9159, 55),
-        "car": get_car_data(9159, 55)
+        "location": get_location_data(9165, 55, "2023-09-17T12:00:00+00:00", "2023-09-18"),
+        "car": get_car_data(9165, 55, "2023-09-17T12:00:00+00:00", "2023-09-18"),
+        "lap": get_lap_data(9165, 55)
     },
     "Driver 4": {
-        "location": get_location_data(9159, 4),
-        "car": get_car_data(9159, 4)
+        "location": get_location_data(9165, 4, "2023-09-17T12:00:00+00:00", "2023-09-18"),
+        "car": get_car_data(9165, 4,"2023-09-17T12:00:00+00:00", "2023-09-18"),
+        "lap": get_lap_data(9165, 4)
     }
 }
 
@@ -122,7 +124,10 @@ def register_callbacks(app):
             Output("circuit-map", "figure"),
             Output("speed-display", "value"),
             Output("throttle-display", "value"),
+            Output("brake-display", "value"),
             Output("rpm-display", "value"),
+            Output("lap-number-display", "value"),
+            Output("time-stamp-display", "value"),
             Output("leaderboard-content", "children")
         ],  
         # Output for speed display
@@ -139,6 +144,7 @@ def register_callbacks(app):
         # Fetch telemetry data for the selected driver
         location_data = telemetry_data[selected_driver]["location"]
         car_data = telemetry_data[selected_driver]["car"]
+        lap_data = telemetry_data[selected_driver]["lap"]
 
         
 
@@ -146,15 +152,54 @@ def register_callbacks(app):
         x_coords = [point["x"] for point in location_data]
         y_coords = [point["y"] for point in location_data]
         time_stamps = [point["date"] for point in location_data]
+        lap_time_stamps = [point["date_start"] for point in lap_data]
+
+        # time_stamps = lap_time_stamps
+
         
        # Get the current timestamp
-        time_index = 15000 + n_intervals % len(time_stamps)
+        time_index = 0 + n_intervals % len(time_stamps)
+        lap_time_index = n_intervals % len(time_stamps)
+
         time_index_55 = 15000 + n_intervals % len(x_coords_55)
         time_index_4 = 15000 + n_intervals % len(x_coords_4)
         current_timestamp = time_stamps[time_index]
 
+        print("time_index = ", time_index)
+        print("time_index_55 = ", time_index_55)
+        print("time_index_4 = ", time_index_4)
         print("current_timestamp = ", time_stamps[time_index])
+        print("lap_current_timestamp = ", lap_time_stamps)
+        
+        # Ensure all elements in `lap_time_stamps` are strings and valid ISO format timestamps
+        valid_lap_time_stamps = [
+            ts for ts in lap_time_stamps if isinstance(ts, str)
+        ]
 
+        # Convert timestamps to datetime objects
+        try:
+            lap_current_timestamps_dt = [
+                datetime.fromisoformat(ts) for ts in valid_lap_time_stamps
+            ]
+            current_timestamp_dt = datetime.fromisoformat(current_timestamp)
+        except ValueError as e:
+            print("Error parsing timestamp:", e)
+            raise
+
+        # # Convert timestamps to datetime objects for comparison
+        # current_timestamp_dt = datetime.fromisoformat(current_timestamp)
+        # lap_current_timestamps_dt = [datetime.fromisoformat(ts) for ts in valid_lap_time_stamps]
+
+        # Determine the current lap
+        current_lap = 0  # Default if no laps match
+        for i, lap_start in enumerate(lap_current_timestamps_dt):
+            if lap_start <= current_timestamp_dt:
+                current_lap = i + 1  # Laps are 1-indexed
+            else:
+                break  # Exit loop once we've passed the current timestamp
+
+        # Output the result
+        print(f"The driver is currently on lap {current_lap}.")
 
         closest_data = min(
             car_data,
@@ -162,10 +207,10 @@ def register_callbacks(app):
         )
         speed = closest_data["speed"]  # Safely extract speed
         throttle = closest_data["throttle"]
+        brake = closest_data["brake"]
         rpm = closest_data["rpm"]
         driver_number = closest_data["driver_number"]
 
-        
         next_time_index = (time_index + 1) % len(x_coords)
 
         # Compute a fraction of the way between the current position and the next
@@ -175,7 +220,7 @@ def register_callbacks(app):
         y_position = y_coords[time_index] + fraction * (y_coords[next_time_index] - y_coords[time_index])
 
         # Print current positions for debugging
-        print(f"Selected driver - #: {driver_number}, lat: {x_coords_55[time_index]}, lon: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, rpm_55: {rpm}")
+        print(f"Selected driver - #: {driver_number}, lat: {x_coords_55[time_index]}, lon: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, brake_55: {brake}, rpm_55: {rpm}, lap #: {current_lap}")
         # print(f"Driver 4 - x: {x_coords[time_index]}, y: {y_coords[time_index]}")
         # Example leaderboard data (replace with actual data source)
         
@@ -221,15 +266,15 @@ def register_callbacks(app):
                 line=dict(color="white", width=3)
                 ),
                 go.Scattergl(  # Use scattergl for the other driver
-                x=[x_coords_55[time_index_55]], 
-                y=[y_coords_55[time_index_55]], 
+                x=[x_coords_55[time_index]], 
+                y=[y_coords_55[time_index]], 
                 mode="markers", 
                 name="Carlos Sainz",
                 marker=dict(size=10, color="red")
                 ),
                 go.Scattergl(  # Use scattergl for the other driver
-                x=[x_coords_4[time_index_4]], 
-                y=[y_coords_4[time_index_4]], 
+                x=[x_coords_4[time_index]], 
+                y=[y_coords_4[time_index]], 
                 mode="markers", 
                 name="Lando Norris",
                 marker=dict(size=10, color="orange")
@@ -264,4 +309,6 @@ def register_callbacks(app):
             #     # paper_bgcolor="#20242c",
             # )
         )
-        return updated_map, speed, throttle, rpm, leaderboard_content
+        # Lap number update
+        # lap_number_text = f"Lap #: {lap_number}"
+        return updated_map, speed, throttle, brake, rpm, current_lap, current_timestamp, leaderboard_content

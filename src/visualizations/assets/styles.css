@@ -26,13 +26,6 @@ h1 {
     padding-left: 20px;
 }
 
-/* Custom styles for the speed gauge */
-#rpm-display {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-    padding-left: 20px;
-}
 .dash-spinners {
     display: flex;
     justify-content: center;
@@ -41,6 +34,21 @@ h1 {
 
 .dash-row {
     margin-bottom: 30px;
+}
+
+#rpm-display {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    padding-left: 20px;
+}
+
+#brake-display {
+    display: flex;
+    justify-content: center;
+    margin-top: 0px;
+    padding-left: 20px;
+    /* background-color: #1e2130 */
 }
 
 #leaderboard-container {
