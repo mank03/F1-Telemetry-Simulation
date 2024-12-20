@@ -10,7 +10,7 @@ def create_layout():
             'flexDirection': 'column',
             'backgroundColor': '#20242c',
             'height': '100vh',
-            'padding': '20px',
+            'padding': '10px',
             'color': 'white'  # Ensure text is visible on dark background
         },
         children=[
@@ -56,11 +56,11 @@ def create_layout():
                     )
                 ]
             ),
-            html.Div(  # Speed gauge and throttle bar section
+            html.Div(  # Speed gauge, rpm gauge throttle bar, brake bar, Lap, and tyre display
                 style={
                     'display': 'flex',
                     'flexDirection': 'row',  # Arrange horizontally
-                    'gap': '100px',  # Add space between components
+                    'gap': '75px',  # Add space between components
                     'justifyContent': 'left'
                 },
                 children=[
@@ -77,7 +77,7 @@ def create_layout():
                         ),
                         style={'textAlign': 'center'}
                     ),
-                    html.Div(  # Speed Gauge container
+                    html.Div(  # RPM Gauge container
                         daq.Gauge(
                             showCurrentValue=True,
                             id="rpm-display",
@@ -120,40 +120,110 @@ def create_layout():
                         # style={'textAlign': 'center'}
                     ),
                     html.Div(  # Lap display container
+                        style={
+                            'display': 'flex',
+                            'flexDirection': 'row',
+                            'gap': '20px',  # Custom gap for Lap and Tyre display
+                            'justifyContent': 'left'
+                        },
                         children=[
                             html.Div(
-                                html.H3("Lap: 0", id="lap-number-display", style={"textAlign": "left", "color": "white"}),
-                                style={"marginBottom": "1px"}
+                                children=[
+                                    html.Div(
+                                        html.H3("Lap: 0", id="lap-number-display", style={"textAlign": "left", "color": "white"}),
+                                    ),
+                                    html.Div(  # Right section: Stint
+                                        children=[
+                                            html.H5("Stint: 1", id="stint-display", style={"textAlign": "center", "color": "white", "marginTop": "1px"})
+                                        ],
+                                        style={
+                                            "display": "flex",
+                                            "alignItems": "left",  # Center align the stint text vertically
+                                            "justifyContent": "left",
+                                            "marginRight": "20px"  # Add spacing to the right for the stint section
+                                        }
+                                    ),
+                                    html.Div(
+                                        html.H5("Lap Duration: 0:00.00", id="lap-duration-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                    ),
+                                    html.Div(
+                                        html.H5("Sector #1: 0:00.00", id="duration-sector-one-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                    ),
+                                    html.Div(
+                                        html.H5("Sector #2: 0:00.00", id="duration-sector-two-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                    ),
+                                    html.Div(
+                                        html.H5("Sector #3: 0:00.00", id="duration-sector-three-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                    )
+                                ],
+                                style=
+                                {
+                                    "display": "flex",
+                                    "flexDirection": "column",
+                                    "alignItems": "left",
+                                    "width": "225px",  # Updated width for the container
+                                    "height": "310px",  # Updated width for the container
+                                    "padding": "7px",  # Add padding for better spacing inside the container
+                                    "backgroundColor": "#2c2f36",  # Background color for better contrast with shadow
+                                    "borderRadius": "10px",  # Rounded corners
+                                    "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)"  # Shadow effect
+                                }
                             ),
-                            html.Div(
-                                html.H5("Lap Duration: 0:00.00", id="lap-duration-display", style={"textAlign": "left", "color": "white"}),
-                                style={"marginBottom": "1px"} 
-                            ),
-                            html.Div(
-                                html.H5("Sector #1: 0:00.00", id="duration-sector-one-display", style={"textAlign": "left", "color": "white"}),
-                                style={"marginBottom": "1px"}  
-                            ),
-                            html.Div(
-                                html.H5("Sector #2: 0:00.00", id="duration-sector-two-display", style={"textAlign": "left", "color": "white"}),
-                                style={"marginBottom": "1px"}
-                            ),
-                            html.Div(
-                                html.H5("Sector #3: 0:00.00", id="duration-sector-three-display", style={"textAlign": "left", "color": "white"}),
-                                style={"marginBottom": "1px"}
-                            ),
-                        ],
-                            style=
-                            {
-                                "display": "flex",
-                                "flexDirection": "column",
-                                "alignItems": "left",
-                                "width": "225px",  # Updated width for the container
-                                "padding": "7px",  # Add padding for better spacing inside the container
-                                "backgroundColor": "#2c2f36",  # Background color for better contrast with shadow
-                                "borderRadius": "10px",  # Rounded corners
-                                "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)"  # Shadow effect
-                            }
-                    ),
+                            html.Div(  # tyre display container
+                                children=[
+                                    html.Div(
+                                        children=[
+                                            html.Div(  # Left section: Compound and image
+                                                children=[
+                                                    html.H5("Compound: ", id="compound-display", style={"textAlign": "center", "color": "white"}),
+                                                    html.Img(id="compound-image", src="/assets/unknown.png", style={"height": "100px", "width": "100px"}),
+                                                ],
+                                                style={
+                                                    "display": "flex",  # Align both sections (Compound/Image and Stint) side by side
+                                                    "flexDirection": "column",  # Row layout
+                                                    "alignItems": "center",  # Vertically center content
+                                                    "justifyContent": "center",  # Center align items vertically
+                                                    "padding": "0px",  # Add padding for better spacing inside the container
+                                                    "backgroundColor": "#2c2f36",  # Background color for better contrast
+                                                    "borderRadius": "10px",  # Rounded corners
+                                                    "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)",  # Shadow effect
+                                                    "width": "125px",  # Adjust width for your container
+                                                    "height": "180px"
+                                                }
+                                            ),
+                                            html.Div(  # Left section: Compound and image
+                                                children=[
+                                                    html.Div(
+                                                        html.H5("Pits: 0", id="pit-number-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                                    ),
+                                                    html.Div(
+                                                        html.H5("Pit Lap: ", id="pit-lap-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                                    ),
+                                                    html.Div(
+                                                        html.H5("Pit Duration: ", id="pit-duration-display", style={"textAlign": "left", "color": "white", "marginTop": "1px"}),
+                                                    ),
+                                                ],
+                                                 style={
+                                                    "marginTop": "5px",
+                                                    "display": "flex",  # Align both sections (Compound/Image and Stint) side by side
+                                                    "flexDirection": "column",  # Row layout
+                                                    "alignItems": "center",  # Vertically center content
+                                                    "justifyContent": "center",  # Center align items vertically
+                                                    "padding": "0px",  # Add padding for better spacing inside the container
+                                                    "backgroundColor": "#2c2f36",  # Background color for better contrast
+                                                    "borderRadius": "10px",  # Rounded corners
+                                                    "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)",  # Shadow effect
+                                                    "width": "125px",  # Adjust width for your container
+                                                    "height": "140px"
+                                                }
+                                            )
+                                        ],
+                                    )
+                                ],
+
+                            )
+                        ]
+                    )
                 ]
             ),
             dcc.Store(id="selected-driver", data="Driver 55"),  # Default selected driver

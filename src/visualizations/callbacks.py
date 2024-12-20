@@ -9,7 +9,7 @@ import dash
 from matplotlib import figure
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
-from telemetry import get_location_data, get_car_data, get_lap_data
+from telemetry import get_location_data, get_car_data, get_lap_data, get_stints_data, get_pit_data
 
 # Mapbox access token (replace with your token)
 MAPBOX_STYLE_URL = "mapbox://styles/mkonnur/cm4omuz6e008m01s8446k9r6n"
@@ -37,12 +37,16 @@ telemetry_data = {
     "Driver 55": {
         "location": get_location_data(9165, 55, "2023-09-17T12:00:00+00:00", "2023-09-18"),
         "car": get_car_data(9165, 55, "2023-09-17T12:00:00+00:00", "2023-09-18"),
-        "lap": get_lap_data(9165, 55)
+        "lap": get_lap_data(9165, 55),
+        "stint": get_stints_data(9165, 55),
+        "pit": get_pit_data(9165, 55)
     },
     "Driver 4": {
         "location": get_location_data(9165, 4, "2023-09-17T12:00:00+00:00", "2023-09-18"),
         "car": get_car_data(9165, 4,"2023-09-17T12:00:00+00:00", "2023-09-18"),
-        "lap": get_lap_data(9165, 4)
+        "lap": get_lap_data(9165, 4),
+        "stint": get_stints_data(9165, 4),
+        "pit": get_pit_data(9165, 4)
     }
 }
 
@@ -94,6 +98,14 @@ x_coords_55, y_coords_55   = get_driver_coordinates("Driver 55", telemetry_data)
 # rpm_55 = [point["rpm"] for point in car_data_55]  # speed of driver 55
 # time_stamps_55 = [point["date"] for point in telemetry_driver_55]  # ISO-format timestamps
 
+compound_images = {
+    "MEDIUM": "/assets/medium_compound.png",
+    "HARD": "/assets/hard_compound.png",
+    "SOFT": "/assets/soft_compound.png",
+    "UNKNOWN": "/assets/unknown_compound.png"
+}
+
+
 
 def register_callbacks(app):
     @app.callback(
@@ -135,6 +147,12 @@ def register_callbacks(app):
             Output("time-stamp-display", "value"),
             Output("leaderboard-content", "children"),
             Output("saved-zoom", "data"),  # Store zoom state in a dcc.Store
+            Output("stint-display", "children"),
+            Output("compound-display", "children"),
+            Output("compound-image", "src"),
+            Output("pit-number-display", "children"),
+            Output("pit-lap-display", "children"),
+            Output("pit-duration-display", "children")
         ],  
         # Output for speed display
         [
@@ -163,7 +181,8 @@ def register_callbacks(app):
         location_data = telemetry_data[selected_driver]["location"]
         car_data = telemetry_data[selected_driver]["car"]
         lap_data = telemetry_data[selected_driver]["lap"]
-
+        stint_data = telemetry_data[selected_driver]["stint"]
+        pit_data = telemetry_data[selected_driver]["pit"]
         
 
         # Extract data for visualization
@@ -175,11 +194,17 @@ def register_callbacks(app):
         duration_sector_one = [point["duration_sector_1"] for point in lap_data]
         duration_sector_two = [point["duration_sector_2"] for point in lap_data]
         duration_sector_three = [point["duration_sector_3"] for point in lap_data]
+
+        tyre_compound = [point["compound"] for point in stint_data]
+        stint_lap_start = [point["lap_start"] for point in stint_data]
+        stint_lap_end = [point["lap_end"] for point in stint_data]
+        stints = [point["stint_number"] for point in stint_data]
+        
         # time_stamps = lap_time_stamps
 
         
        # Get the current timestamp
-        time_index = 1000 + n_intervals % len(time_stamps)
+        time_index = 8000 + n_intervals % len(time_stamps)
         lap_time_index = n_intervals % len(time_stamps)
 
         time_index_55 = 15000 + n_intervals % len(x_coords_55)
@@ -231,11 +256,55 @@ def register_callbacks(app):
         if duration_sector_three[current_lap]  == None:
             duration_sector_three[current_lap] = "00:00.00"
 
+        current_compound = "None"
+        current_stint = 0
+        for stint in stints:
+            print("stint: ", stint)
+            print(f"stint_lap_start[{stint}] = {stint_lap_start[stint-1]}")
+            if stint_lap_start[stint-1] <= (current_lap+1) <= stint_lap_end[stint-1]:
+                current_compound = tyre_compound[stint-1]
+                print("current_compound: ", current_compound)
+                current_stint += 1
+                break
+            else:
+                current_compound = "None"
+
         # Output the result
-        print(f"The driver is currently on lap {current_lap} and lap duration is {lap_duration[current_lap]}.")
+        print(f"The driver is currently on lap {current_lap+1} and lap duration is {lap_duration[current_lap]}.")
         
         print(f"Sector #1: {duration_sector_one[current_lap]}, Sector #2: {duration_sector_two[current_lap]}, Sector #3: {duration_sector_three[current_lap]}.")
 
+        print(f"Stint #: {current_stint+1}, Compound:  {current_compound}")
+
+        # Get the compound image source
+        if current_compound in compound_images:
+            compound_image_src = compound_images[current_compound]
+        else:
+            compound_image_src = compound_images["UNKNOWN"]  # Default to "UNKNOWN"
+
+
+        pit_number = 0
+        lap_of_pit = 0
+        pit_duration = 0
+
+        print("The # of pit stops are: ", len(pit_data))
+        for idx, entry in enumerate(pit_data):  # Unpack the tuple from enumerate()
+            print("index: ", idx)  # idx is the numeric index
+            print("entry: ", entry)  # entry is the dictionary at that index
+            print("entry[lap_number]: ", entry["lap_number"])  # entry is the dictionary at that index
+
+            # Access the 'lap_number' key directly from the current dictionary entry
+            if entry["lap_number"] == current_lap + 1:
+                lap_of_pit = entry["lap_number"]
+                pit_duration = entry["pit_duration"]
+                pit_number + 1
+                break
+
+
+        print("compound_image_src = ", compound_image_src)
+
+
+        
 
         closest_data = min(
             car_data,
@@ -256,7 +325,7 @@ def register_callbacks(app):
         y_position = y_coords[time_index] + fraction * (y_coords[next_time_index] - y_coords[time_index])
 
         # Print current positions for debugging
-        print(f"Selected driver - #: {driver_number}, lat: {x_coords_55[time_index]}, lon: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, brake_55: {brake}, rpm_55: {rpm}, lap #: {current_lap}")
+        print(f"Selected driver - #: {driver_number}, lat: {x_coords_55[time_index]}, lon: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, brake_55: {brake}, rpm_55: {rpm}, lap #: {current_lap+1}")
         # print(f"Driver 4 - x: {x_coords[time_index]}, y: {y_coords[time_index]}")
         # Example leaderboard data (replace with actual data source)
         
@@ -354,4 +423,4 @@ def register_callbacks(app):
                 yaxis_range=[saved_zoom.get("yaxis.range[0]"), saved_zoom.get("yaxis.range[1]")],
         )
 
-        return updated_map, speed, throttle, brake, rpm, f"Lap:\t{current_lap}", f"Lap Duration:\t{lap_duration[current_lap]}", f"Sector #1:    {duration_sector_one[current_lap]}", f"Sector #2:    {duration_sector_two[current_lap]}", f"Sector #3:   {duration_sector_three[current_lap]}", current_timestamp, leaderboard_content, saved_zoom
+        return updated_map, speed, throttle, brake, rpm, f"Lap:\t{current_lap+1}", f"Lap Duration:\t{lap_duration[current_lap]}", f"Sector #1:    {duration_sector_one[current_lap]}", f"Sector #2:    {duration_sector_two[current_lap]}", f"Sector #3:   {duration_sector_three[current_lap]}", current_timestamp, leaderboard_content, saved_zoom, f"Stint: {current_stint+1}", current_compound, compound_image_src, f"Pits: {pit_number}", f"Pit Lap: {lap_of_pit}", f"Duration: {pit_duration}" 
