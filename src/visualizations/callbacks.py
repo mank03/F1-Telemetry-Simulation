@@ -5,11 +5,13 @@ from dash.dependencies import Input, Output, State, ALL
 # from tkinter import ALL
 from dash import dcc, html
 
+import time
+import vlc
 import dash
 from matplotlib import figure
 import plotly.graph_objs as go
 from dash.dependencies import Input, Output
-from telemetry import get_location_data, get_car_data, get_lap_data, get_stints_data, get_pit_data
+from telemetry import get_location_data, get_car_data, get_lap_data, get_stints_data, get_pit_data, get_race_control_data, get_radio_data, get_interval_data, get_position_data
 
 # Mapbox access token (replace with your token)
 MAPBOX_STYLE_URL = "mapbox://styles/mkonnur/cm4omuz6e008m01s8446k9r6n"
@@ -22,7 +24,15 @@ Y_REF = 540
 LAT_SCALE = 2.933e-6  # Calculated earlier
 LON_SCALE = 8.835e-7  # Calculated earlier
 
-
+# Play audio using VLC
+def play_audio(url):
+    player = vlc.MediaPlayer(url)
+    player.play()
+    while True:
+        state = player.get_state()
+        if state in (vlc.State.Ended, vlc.State.Error):
+            break
+        time.sleep(0.1)  # Avoid busy-waiting
 
 # Load GeoJSON data from file
 with open("singapore.geojson", "r") as file:
@@ -32,23 +42,7 @@ with open("singapore.geojson", "r") as file:
 line_coordinates = geojson_data["features"][0]["geometry"]["coordinates"]
 line_lons, line_lats = zip(*line_coordinates)
 
-# Fetch telemetry data
-telemetry_data = {
-    "Driver 55": {
-        "location": get_location_data(9165, 55, "2023-09-17T12:00:00+00:00", "2023-09-18"),
-        "car": get_car_data(9165, 55, "2023-09-17T12:00:00+00:00", "2023-09-18"),
-        "lap": get_lap_data(9165, 55),
-        "stint": get_stints_data(9165, 55),
-        "pit": get_pit_data(9165, 55)
-    },
-    "Driver 4": {
-        "location": get_location_data(9165, 4, "2023-09-17T12:00:00+00:00", "2023-09-18"),
-        "car": get_car_data(9165, 4,"2023-09-17T12:00:00+00:00", "2023-09-18"),
-        "lap": get_lap_data(9165, 4),
-        "stint": get_stints_data(9165, 4),
-        "pit": get_pit_data(9165, 4)
-    }
-}
+
 
 # Function to convert Cartesian coordinates to geospatial
 def cartesian_to_geospatial(x, y):
@@ -83,20 +77,11 @@ def get_driver_coordinates(driver_number, telemetry_data):
 
     # return latitudes, longitudes
 
-# Extract coordinates for each driver using the helper function
-x_coords_4, y_coords_4   = get_driver_coordinates("Driver 4", telemetry_data)
-x_coords_55, y_coords_55   = get_driver_coordinates("Driver 55", telemetry_data)
+
 
 # # Extract data for visualization
 # x_coords_55 = [point["x"] for point in telemetry_driver_55]
 # y_coords_55 = [point["y"] for point in telemetry_driver_55]
-
-# # Fetch the latest speed data for driver 55
-# car_data_55 = get_car_data(9159, 55)
-# speed_55 = [point["speed"] for point in car_data_55]  # speed of driver 55
-# throttle_55 = [point["throttle"] for point in car_data_55]  # speed of driver 55
-# rpm_55 = [point["rpm"] for point in car_data_55]  # speed of driver 55
-# time_stamps_55 = [point["date"] for point in telemetry_driver_55]  # ISO-format timestamps
 
 compound_images = {
     "MEDIUM": "/assets/medium_compound.png",
@@ -105,9 +90,88 @@ compound_images = {
     "UNKNOWN": "/assets/unknown_compound.png"
 }
 
+category_images = {
+    "SafetyCar": "/assets/SafetyCar.gif",
+    "Other": "/assets/other.png",
+    "Flag": "/assets/yellow.png",
+    "UNKNOWN": "/assets/other.png"
+}
 
+flag_images = {
+    "GREEN": "/assets/green.png",
+    "YELLOW": "/assets/yellow.png",
+    "CHEQUERED": "/assets/chequered.svg",
+    "BLACK AND WHITE": "/assets/black_white.avif",
+    "RED": "/assets/red.png",
+    "CLEAR": "/assets/green.png",
+    "BLUE": "/assets/blue.webp",
+    'BLACK': "/assets/black.png",
+    'WHITE': "/assets/white/png",
+    "UNKNOWN": "/assets/other.png"
+}
 
 def register_callbacks(app):
+    @app.callback(
+        Output("telemetry-data", "data"),  # Replace with your actual output
+        [Input("apply-button", "n_clicks")],  # Trigger on button click
+        [State("meeting-key-dropdown", "value"),
+        State("session-key-dropdown", "value")]
+    )
+    def apply_selections(n_clicks, selected_meeting, selected_session):
+        print("n_clicks = ", n_clicks)
+        print("selected_meeting = ", selected_meeting)
+        print("selected_session = ", selected_session)
+
+        if not n_clicks:
+            # Do not update if the button hasn't been clicked
+            raise dash.exceptions.PreventUpdate
+        
+        if not selected_meeting or not selected_session:
+            return "Both track and session type must be selected."
+        
+        # Example usage of track and session type
+        # meeting_key = selected_meeting
+        # session_key = selected_session
+
+        # Fetch telemetry data
+        telemetry_data = {
+            "Driver 55": {
+                "location": get_location_data(selected_session, selected_meeting, 55),
+                "car": get_car_data(selected_session, selected_meeting, 55),
+                "lap": get_lap_data(selected_session, selected_meeting, 55),
+                "stint": get_stints_data(selected_session, selected_meeting, 55),
+                "pit": get_pit_data(selected_session, selected_meeting, 55),
+                "radio": get_radio_data(selected_session, selected_meeting, 55),
+                "interval": get_interval_data(selected_session, selected_meeting, 55),
+                "position": get_position_data(selected_session, selected_meeting, 55)
+            },
+            "Driver 4": {
+                "location": get_location_data(selected_session, selected_meeting, 4),
+                "car": get_car_data(selected_session, selected_meeting, 4),
+                "lap": get_lap_data(selected_session, selected_meeting, 4),
+                "stint": get_stints_data(selected_session, selected_meeting, 4),
+                "pit": get_pit_data(selected_session, selected_meeting, 4),
+                "radio": get_radio_data(selected_session, selected_meeting, 4),
+                "interval": get_interval_data(selected_session, selected_meeting, 4),
+                "position": get_position_data(selected_session, selected_meeting, 4)
+            },
+                "Driver 44": {
+                "location": get_location_data(selected_session, selected_meeting, 44),
+                "car": get_car_data(selected_session, selected_meeting, 44),
+                "lap": get_lap_data(selected_session, selected_meeting, 44),
+                "stint": get_stints_data(selected_session, selected_meeting, 44),
+                "pit": get_pit_data(selected_session, selected_meeting, 44),
+                "radio": get_radio_data(selected_session, selected_meeting, 44),
+                "interval": get_interval_data(selected_session, selected_meeting, 44),
+                "position": get_position_data(selected_session, selected_meeting, 44)
+            },
+            "Race Updates": {
+                "race_control": get_race_control_data(selected_session, selected_meeting)
+            }
+        }
+        print("Telemetry data successfully generated.")
+        return telemetry_data
+
     @app.callback(
         Output("selected-driver", "data"),
         [Input({"type": "leaderboard-item", "index": ALL}, "n_clicks")],
@@ -129,7 +193,7 @@ def register_callbacks(app):
         index = triggered_id_dict.get("index")  # Get the index
         print("Clicked Driver ID:", index)
         # Map the index to the driver name (match `leaderboard_data` to `telemetry_data`)
-        leaderboard_data = ["Driver 55", "Driver 4", "Driver 16"]  # Ordered list of drivers
+        leaderboard_data = ["Driver 55", "Driver 4", "Driver 44"]  # Ordered list of drivers
         return leaderboard_data[index] if index is not None else current_selection
         
     @app.callback(
@@ -152,17 +216,42 @@ def register_callbacks(app):
             Output("compound-image", "src"),
             Output("pit-number-display", "children"),
             Output("pit-lap-display", "children"),
-            Output("pit-duration-display", "children")
+            Output("pit-duration-display", "children"),
+            Output("race-message-display", "children"),
+            Output("category-display", "children"),
+            Output("category-image", "src"),
+            Output("drs-display", "children"),
         ],  
         # Output for speed display
         [
             Input('interval-component', 'n_intervals'),
+            Input("telemetry-data", "data"),
             Input("selected-driver", "data"),
             Input("circuit-map", "relayoutData"),  # Capture user zoom/pan changes
         ],
-        State("saved-zoom", "data"),  # Retrieve the saved zoom state
+        State("saved-zoom", "data"), 
+        
     )
-    def update_driver_position(n_intervals, selected_driver, relayout_data, saved_zoom):
+    def update_driver_position(n_intervals, telemetry_data, selected_driver, relayout_data, saved_zoom):
+        # Handle empty telemetry_data
+        if not telemetry_data:
+            print("No telemetry data received.")
+            raise dash.exceptions.PreventUpdate
+
+        # Decode JSON data
+        try:
+            if isinstance(telemetry_data, str):
+                print(f"Decoding telemetry_data: {telemetry_data}")
+                telemetry_data = json.loads(telemetry_data)
+        except json.JSONDecodeError as e:
+            print(f"JSONDecodeError: {e}")
+            raise dash.exceptions.PreventUpdate
+
+        # Extract coordinates for each driver using the helper function
+        x_coords_4, y_coords_4   = get_driver_coordinates("Driver 4", telemetry_data)
+        x_coords_44, y_coords_44   = get_driver_coordinates("Driver 44", telemetry_data)
+        x_coords_55, y_coords_55   = get_driver_coordinates("Driver 55", telemetry_data)
+
         # Default to Driver 55 if no driver is selected
         if selected_driver not in telemetry_data:
             print(f"Invalid driver selected: {selected_driver}")
@@ -183,7 +272,14 @@ def register_callbacks(app):
         lap_data = telemetry_data[selected_driver]["lap"]
         stint_data = telemetry_data[selected_driver]["stint"]
         pit_data = telemetry_data[selected_driver]["pit"]
-        
+        race_control_data = telemetry_data["Race Updates"]["race_control"]
+        radio_data = telemetry_data[selected_driver]["radio"]
+        interval_data_55 = telemetry_data["Driver 55"]["interval"]
+        interval_data_4 = telemetry_data["Driver 4"]["interval"]
+        interval_data_44 = telemetry_data["Driver 44"]["interval"]
+        position_data_55 = telemetry_data["Driver 55"]["position"]
+        position_data_4 = telemetry_data["Driver 4"]["position"]
+        position_data_44 = telemetry_data["Driver 44"]["position"]
 
         # Extract data for visualization
         x_coords = [point["x"] for point in location_data]
@@ -198,13 +294,12 @@ def register_callbacks(app):
         tyre_compound = [point["compound"] for point in stint_data]
         stint_lap_start = [point["lap_start"] for point in stint_data]
         stint_lap_end = [point["lap_end"] for point in stint_data]
-        stints = [point["stint_number"] for point in stint_data]
-        
+        stints = [point["stint_number"] for point in stint_data]    
         # time_stamps = lap_time_stamps
 
         
        # Get the current timestamp
-        time_index = 8000 + n_intervals % len(time_stamps)
+        time_index = 15000 + n_intervals % len(time_stamps)
         lap_time_index = n_intervals % len(time_stamps)
 
         time_index_55 = 15000 + n_intervals % len(x_coords_55)
@@ -215,7 +310,6 @@ def register_callbacks(app):
         print("time_index_55 = ", time_index_55)
         print("time_index_4 = ", time_index_4)
         print("current_timestamp = ", time_stamps[time_index])
-        # print("lap_current_timestamp = ", lap_time_stamps)
         
         # Ensure all elements in `lap_time_stamps` are strings and valid ISO format timestamps
         valid_lap_time_stamps = [
@@ -256,25 +350,62 @@ def register_callbacks(app):
         if duration_sector_three[current_lap]  == None:
             duration_sector_three[current_lap] = "00:00.00"
 
-        current_compound = "None"
+        current_compound = tyre_compound[0]
         current_stint = 0
-        for stint in stints:
-            print("stint: ", stint)
-            print(f"stint_lap_start[{stint}] = {stint_lap_start[stint-1]}")
-            if stint_lap_start[stint-1] <= (current_lap+1) <= stint_lap_end[stint-1]:
-                current_compound = tyre_compound[stint-1]
-                print("current_compound: ", current_compound)
-                current_stint += 1
-                break
-            else:
-                current_compound = "None"
+        pit_number = 0
+        lap_of_pit = 0
+        pit_duration = 0
+
+
+        print("The # of pit stops are: ", len(pit_data))
+        for idx, entry in enumerate(pit_data):  # Iterate through pit data
+            print("pit - index: ", idx)
+            print("pit - entry: ", entry)
+            print("pit - entry[date]: ", entry["date"])
+
+            # Check if the current timestamp is greater than or equal to the entry date
+            if current_timestamp >= entry["date"]:
+                lap_of_pit = entry["lap_number"]
+                pit_duration = entry["pit_duration"]
+                pit_number += 1
+                # Update the current compound and stint number
+                for stint in stints:
+                    print("stint: ", stint)
+                    print(f"stint_lap_start[{stint}] = {stint_lap_start[stint-1]}")
+                    print(f"stint_lap_end[{stint}] = {stint_lap_end[stint-1]}")
+                    if stint_lap_start[stint-1] <= (lap_of_pit + 1) <= stint_lap_end[stint-1]:
+                        current_compound = tyre_compound[stint-1]
+                        print("current_compound: ", current_compound)
+                        current_stint = stint
+                        break
+                    else:
+                        current_compound = "None"
+
+                break  # Exit the loop once the condition is satisfied
+
+        message = "None"
+        for idx, entry in enumerate(race_control_data):  # Iterate through pit data
+            if entry["date"] <= current_timestamp:
+                message = entry["message"]
+                category = entry["category"]
+                flag = entry["flag"]
+
+        if category in category_images:
+            category_images_src = category_images[category]
+        else:
+            category_images_src = category_images["UNKNOWN"]
+
+        if flag in flag_images:
+            category_images_src = flag_images[flag]
+        else:
+            category_images_src = category_images["UNKNOWN"]
 
         # Output the result
         print(f"The driver is currently on lap {current_lap+1} and lap duration is {lap_duration[current_lap]}.")
         
         print(f"Sector #1: {duration_sector_one[current_lap]}, Sector #2: {duration_sector_two[current_lap]}, Sector #3: {duration_sector_three[current_lap]}.")
 
-        print(f"Stint #: {current_stint+1}, Compound:  {current_compound}")
+        print(f"Stint #: {current_stint}, Compound:  {current_compound}")
 
         # Get the compound image source
         if current_compound in compound_images:
@@ -282,28 +413,7 @@ def register_callbacks(app):
         else:
             compound_image_src = compound_images["UNKNOWN"]  # Default to "UNKNOWN"
 
-
-        pit_number = 0
-        lap_of_pit = 0
-        pit_duration = 0
-
-        print("The # of pit stops are: ", len(pit_data))
-        for idx, entry in enumerate(pit_data):  # Unpack the tuple from enumerate()
-            print("index: ", idx)  # idx is the numeric index
-            print("entry: ", entry)  # entry is the dictionary at that index
-            print("entry[lap_number]: ", entry["lap_number"])  # entry is the dictionary at that index
-
-            # Access the 'lap_number' key directly from the current dictionary entry
-            if entry["lap_number"] == current_lap + 1:
-                lap_of_pit = entry["lap_number"]
-                pit_duration = entry["pit_duration"]
-                pit_number + 1
-                break
-
-
         print("compound_image_src = ", compound_image_src)
-
-
         
 
         closest_data = min(
@@ -315,6 +425,7 @@ def register_callbacks(app):
         brake = closest_data["brake"]
         rpm = closest_data["rpm"]
         driver_number = closest_data["driver_number"]
+        drs = closest_data["drs"]
 
         next_time_index = (time_index + 1) % len(x_coords)
 
@@ -326,24 +437,131 @@ def register_callbacks(app):
 
         # Print current positions for debugging
         print(f"Selected driver - #: {driver_number}, lat: {x_coords_55[time_index]}, lon: {y_coords_55[time_index]}, speed_55: {speed}, throttle_55: {throttle}, brake_55: {brake}, rpm_55: {rpm}, lap #: {current_lap+1}")
-        # print(f"Driver 4 - x: {x_coords[time_index]}, y: {y_coords[time_index]}")
-        # Example leaderboard data (replace with actual data source)
         
+        if drs in {0, 1}:
+            drs_message = "DISABLED"
+        elif drs in {10, 12, 14}:
+            drs_message = "ENABLED"
+        else:
+            drs_message = "Detected, not eligible"
+
+        
+        print("DRS: ", drs)
+
+        
+        recording = "None"
+
+        for idx, entry in enumerate(radio_data):  # Iterate through pit data
+            entry_datetime = datetime.fromisoformat(entry["date"])
+            current_timestamp_new = datetime.fromisoformat(current_timestamp)
+            if abs((current_timestamp_new - entry_datetime).total_seconds()) <= 0.5:
+                recording = entry["recording_url"]
+                print(f"Playing recording for driver {driver_number} at {entry["date"]}")
+                play_audio(entry["recording_url"])
+                break
+        
+        driver_interval_55 = "None"
+        
+
+        for idx, entry in enumerate(interval_data_55):  # Iterate through pit data
+            entry_date = datetime.fromisoformat(entry["date"])
+            current_timestamp_intervals = datetime.fromisoformat(current_timestamp)
+            if current_timestamp_intervals >= entry_date:
+                    driver_interval_55 = entry["interval"]
+        
+        driver_position_55 = "None"
+
+        for idx, entry in enumerate(position_data_55):  # Iterate through pit data
+            entry_date = datetime.fromisoformat(entry["date"])
+            current_timestamp_intervals = datetime.fromisoformat(current_timestamp)
+            if current_timestamp_intervals >= entry_date:
+                    driver_position_55 = entry["position"]
+
+        driver_interval_4 = "None"
+        
+        for idx, entry in enumerate(interval_data_4):  # Iterate through pit data
+            entry_date = datetime.fromisoformat(entry["date"])
+            current_timestamp_intervals = datetime.fromisoformat(current_timestamp)
+            if current_timestamp_intervals >= entry_date:
+                    driver_interval_4 = entry["interval"]
+
+        driver_position_4 = "None"
+        
+        for idx, entry in enumerate(position_data_4):  # Iterate through pit data
+            entry_date = datetime.fromisoformat(entry["date"])
+            current_timestamp_intervals = datetime.fromisoformat(current_timestamp)
+            if current_timestamp_intervals >= entry_date:
+                    driver_position_4 = entry["position"]
+
+        driver_interval_44 = "None"
+        
+        for idx, entry in enumerate(interval_data_44):  # Iterate through pit data
+            entry_date = datetime.fromisoformat(entry["date"])
+            current_timestamp_intervals = datetime.fromisoformat(current_timestamp)
+            if current_timestamp_intervals >= entry_date:
+                    driver_interval_44 = entry["interval"]
+
+        driver_position_44 = "None"
+        
+        for idx, entry in enumerate(position_data_44):  # Iterate through pit data
+            entry_date = datetime.fromisoformat(entry["date"])
+            current_timestamp_intervals = datetime.fromisoformat(current_timestamp)
+            if current_timestamp_intervals >= entry_date:
+                    driver_position_44 = entry["position"]
         # Leaderboard content
         leaderboard_data = [
-            {"name": "Driver 55", "time": "1:23.456", "id": "Driver 55"},
-            {"name": "Driver 4", "time": "1:24.123", "id": "Driver 4"},
-            {"name": "Driver 16", "time": "1:24.789", "id": "Driver 16"},
+            {
+                "image": "/assets/sainz.avif",
+                "name": "Carlos Sainz",
+                "time": str(driver_interval_55) if driver_interval_55 is not None else "N/A",  # Use fallback if None
+                "position": str(driver_position_55) if driver_position_55 is not None else "N/A",
+                "id": "Driver 55",
+            },
+            {
+                "image": "/assets/norris.avif",
+                "name": "Lando Norris",
+                "time": str(driver_interval_4) if driver_interval_4 is not None else "N/A",
+                "position": str(driver_position_4) if driver_position_4 is not None else "N/A",
+                "id": "Driver 4",
+            },
+            {
+                "image": "/assets/hamilton.avif",
+                "name": "Lewis Hamilton",
+                "time": str(driver_interval_44) if driver_interval_44 is not None else "N/A",
+                "position": str(driver_position_44) if driver_position_44 is not None else "N/A",
+                "id": "Driver 44",
+            },
         ]
+
         leaderboard_content = [
             html.Div(
                 children=[
-                    html.Span(f"{i + 1}. {entry['name']}", style={'fontWeight': 'bold'}),
-                    html.Span(f" - {entry['time']}", style={'marginLeft': '10px'})
+                    html.Img(
+                        src=entry['image'],  # The image source from the data
+                        alt=f"Image of {entry['name']}",
+                        style={'width': '100px', 'height': '100px'}  # Adjust size and margin as needed
+                    ),
+                    html.Div(  # Wrap name and time in a div to stack them vertically
+                        children=[
+                            html.Span(f"{entry['name']}", style={'fontWeight': 'bold'}),
+                            html.Span(f"{entry['time']}", style={'marginTop': '5px'}),  # Add margin-top to space out time from name
+                            html.Span(f"{entry['position']}", style={'marginTop': '5px', 'fontSize': '20px'})  # Add margin-top to space out time from name
+                        ],
+                        style={'display': 'flex', 'flexDirection': 'column', 'marginLeft': '8px'}  # Stack name and time vertically
+                    ),
                 ],
-                style={'marginBottom': '10px', 'cursor': 'pointer'},
+                style={
+                    'cursor': 'pointer',
+                    'display': 'flex',
+                    'alignItems': 'center',
+                    "justifyContent": "left",
+                    'padding': '2px',
+                    'border': '1px solid white' if entry['id'] == selected_driver else 'transparent',
+                    'backgroundColor': "#2c2f36" if entry['id'] == selected_driver else 'transparent',
+                    'boxShadow': '0px 4px 10px rgba(0, 0, 0, 0.5)' if entry['id'] == selected_driver else 'none',
+                },
                 id={"type": "leaderboard-item", "index": i},  # Use dictionary format for the id
-                n_clicks = 0
+                n_clicks=0
             )
             for i, entry in enumerate(leaderboard_data)
         ]
@@ -383,6 +601,13 @@ def register_callbacks(app):
                 mode="markers", 
                 name="Lando Norris",
                 marker=dict(size=10, color="orange")
+                ),
+                go.Scattergl(  # Use scattergl for the other driver
+                x=[x_coords_44[time_index]], 
+                y=[y_coords_44[time_index]], 
+                mode="markers", 
+                name="Lewis Hamilton",
+                marker=dict(size=10, color="#00A19C")
                 )
             ],
             layout=go.Layout(
@@ -423,4 +648,4 @@ def register_callbacks(app):
                 yaxis_range=[saved_zoom.get("yaxis.range[0]"), saved_zoom.get("yaxis.range[1]")],
         )
 
-        return updated_map, speed, throttle, brake, rpm, f"Lap:\t{current_lap+1}", f"Lap Duration:\t{lap_duration[current_lap]}", f"Sector #1:    {duration_sector_one[current_lap]}", f"Sector #2:    {duration_sector_two[current_lap]}", f"Sector #3:   {duration_sector_three[current_lap]}", current_timestamp, leaderboard_content, saved_zoom, f"Stint: {current_stint+1}", current_compound, compound_image_src, f"Pits: {pit_number}", f"Pit Lap: {lap_of_pit}", f"Duration: {pit_duration}" 
+        return updated_map, speed, throttle, brake, rpm, f"Lap:\t{current_lap+1}", f"Lap Duration:\t{lap_duration[current_lap]}", f"Sector #1:    {duration_sector_one[current_lap]}", f"Sector #2:    {duration_sector_two[current_lap]}", f"Sector #3:   {duration_sector_three[current_lap]}", current_timestamp, leaderboard_content, saved_zoom, f"Stint: {current_stint}", current_compound, compound_image_src, f"Pits: {pit_number}", f"Pit Lap: {lap_of_pit}", f"Duration: {pit_duration}", f"Info: {message}", f"Category: {category}", category_images_src, f"DRS: {drs_message}"

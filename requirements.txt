@@ -1,2 +1,6 @@
 requests
 python-dotenv
+dash
+dash-daq
+matplotlib
+vlc

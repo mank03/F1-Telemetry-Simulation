@@ -36,17 +36,42 @@ def create_layout():
                             'overflowY': 'auto'  # Allow scrolling for many drivers
                         },
                         children=[
-                            html.H4("Leaderboard", style={'textAlign': 'center'}),
+                            html.H2("Drivers", style={'textAlign': 'center', "marginBottom" : "30px"}),
                             html.Div(id="leaderboard-content"),  # Populated by callback
                             dcc.Input(id="time-stamp-display", type="text", value="Time: ", disabled=True)
                         ]
                     ),
                     html.Div(  # Circuit map container
-                        dcc.Graph(
-                            id="circuit-map",
-                            config={'displayModeBar': False, "scrollZoom": True},
-                            style={'flex': '1', 'background-color': '#20242c'}
-                        ),
+                        children=[
+                            dcc.Graph(
+                                id="circuit-map",
+                                config={'displayModeBar': False, "scrollZoom": True},
+                                style={'flex': '1', 'background-color': '#20242c'}
+                            ),
+                            dcc.Dropdown(
+                                id="meeting-key-dropdown",
+                                options=[
+                                    {"label": "Singapore", "value": 1219},
+                                ],
+                                placeholder="Select a track",
+                                value=1219,  # Default to Sinagpore
+                                style={"marginBottom": "10px"}
+                            ),
+                            dcc.Dropdown(
+                                id="session-key-dropdown",
+                                options=[
+                                    {"label": "Race", "value": 9165},
+                                ],
+                                placeholder="Select session type",
+                                value=9165,  # Default to race
+                                style={"marginBottom": "10px"}
+                            ),
+                            html.Button(
+                                "GO",
+                                id="apply-button",
+                                style={"width": "100%", "marginTop": "10px"}
+                            )
+                        ],
                         style={
                             'flex': '1',
                             'padding': '0px',
@@ -130,7 +155,7 @@ def create_layout():
                             html.Div(
                                 children=[
                                     html.Div(
-                                        html.H3("Lap: 0", id="lap-number-display", style={"textAlign": "left", "color": "white"}),
+                                        html.H3("Lap: 0", id="lap-number-display", style={"textAlign": "center", "color": "white"}),
                                     ),
                                     html.Div(  # Right section: Stint
                                         children=[
@@ -220,7 +245,78 @@ def create_layout():
                                         ],
                                     )
                                 ],
-
+                            ),
+                            html.Div(  # race updates display container
+                                children=[
+                                    html.Div(
+                                        children=[
+                                            html.Div(  # Left section: Compound and image
+                                                children=[
+                                                    html.Div(
+                                                        html.H3("RACE UPDATES", style={"textAlign": "center", "color": "white"}),
+                                                    ),
+                                                    html.Div(
+                                                        children=[
+                                                            html.Div(
+                                                                html.H5("Category: ", id = "category-display", style={"textAlign": "left", "color": "white", "marginTop": "1px", "marginRight": "60px"}),
+                                                             ),
+                                                            html.Div(
+                                                                html.Img(id = "category-image", src="/assets/soft_compound.png", style={"alignItems": "right", "height": "65px", "width": "65px"}),
+                                                            )
+                                                        ],
+                                                        style={
+                                                        "display": "flex",  # Align both sections (Compound/Image and Stint) side by side
+                                                        "flexDirection": "row",  # Row layout
+                                                        "alignItems": "left",  # Vertically center content
+                                                        "justifyContent": "left",  # Center align items vertically
+                                                        "padding": "7px",  # Add padding for better spacing inside the container
+                                                        }
+                                                    ),
+                                                    html.Div(
+                                                        html.H5("Message: ", id = "race-message-display", style={"textAlign": "left", "color": "white", "marginTop": "20px", "marginLeft": "3px"}),
+                                                    )
+                                                ],
+                                                 style={
+                                                    "display": "flex",  # Align both sections (Compound/Image and Stint) side by side
+                                                    "flexDirection": "column",  # Row layout
+                                                    "alignItems": "left",  # Vertically center content
+                                                    "justifyContent": "left",  # Center align items vertically
+                                                    "padding": "7px",  # Add padding for better spacing inside the container
+                                                    "backgroundColor": "#2c2f36",  # Background color for better contrast
+                                                    "borderRadius": "10px",  # Rounded corners
+                                                    "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)",  # Shadow effect
+                                                    "width": "300px",  # Adjust width for your container
+                                                    "height": "310px"
+                                                }
+                                            )
+                                        ],
+                                    )
+                                ],
+                            ),
+                            html.Div(  # tyre display container
+                                children=[
+                                    html.Div(
+                                        children=[
+                                            html.Div( 
+                                                children=[
+                                                    html.H5("DRS: ", id = "drs-display", style={"textAlign": "center", "color": "white"}),
+                                                ],
+                                                style={
+                                                    "display": "flex",  # Align both sections (Compound/Image and Stint) side by side
+                                                    "flexDirection": "row",  # Row layout
+                                                    "alignItems": "center",  # Vertically center content
+                                                    "justifyContent": "center",  # Center align items vertically
+                                                    "padding": "0px",  # Add padding for better spacing inside the container
+                                                    "backgroundColor": "#2c2f36",  # Background color for better contrast
+                                                    "borderRadius": "10px",  # Rounded corners
+                                                    "boxShadow": "0px 4px 10px rgba(0, 0, 0, 0.5)",  # Shadow effect
+                                                    "width": "175px",  # Adjust width for your container
+                                                    "height": "50px"
+                                                }
+                                            ),
+                                        ],
+                                    )
+                                ],
                             )
                         ]
                     )
@@ -228,10 +324,11 @@ def create_layout():
             ),
             dcc.Store(id="selected-driver", data="Driver 55"),  # Default selected driver
             dcc.Store(id="saved-zoom", data={}),
+            dcc.Store(id="telemetry-data", storage_type="memory"),
             dcc.Interval(  # Interval component for updates
                 id='interval-component',
-                interval=300,  # Time interval in milliseconds
-                n_intervals=1
+                interval=1000,  # Time interval in milliseconds
+                n_intervals=0
             )
         ]
     )
