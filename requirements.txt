@@ -3,4 +3,5 @@ python-dotenv
 dash
 dash-daq
 matplotlib
-vlc
+python-vlc
+dash_bootstrap_components
