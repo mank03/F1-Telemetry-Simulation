@@ -42,7 +42,42 @@ with open("singapore.geojson", "r") as file:
 line_coordinates = geojson_data["features"][0]["geometry"]["coordinates"]
 line_lons, line_lats = zip(*line_coordinates)
 
-
+# Fetch telemetry data
+telemetry_data = {
+    "Driver 55": {
+        "location": get_location_data(9165, 1219, 55),
+        "car": get_car_data(9165, 1219, 55),
+        "lap": get_lap_data(9165, 1219, 55),
+        "stint": get_stints_data(9165, 1219, 55),
+        "pit": get_pit_data(9165, 1219, 55),
+        "radio": get_radio_data(9165, 1219, 55),
+        "interval": get_interval_data(9165, 1219, 55),
+        "position": get_position_data(9165, 1219, 55)
+    },
+    "Driver 4": {
+        "location": get_location_data(9165, 1219, 4),
+        "car": get_car_data(9165, 1219, 4),
+        "lap": get_lap_data(9165, 1219, 4),
+        "stint": get_stints_data(9165, 1219, 4),
+        "pit": get_pit_data(9165, 1219, 4),
+        "radio": get_radio_data(9165, 1219, 4),
+        "interval": get_interval_data(9165, 1219, 4),
+        "position": get_position_data(9165, 1219, 4)
+    },
+        "Driver 44": {
+        "location": get_location_data(9165, 1219, 44),
+        "car": get_car_data(9165, 1219, 44),
+        "lap": get_lap_data(9165, 1219, 44),
+        "stint": get_stints_data(9165, 1219, 44),
+        "pit": get_pit_data(9165, 1219, 44),
+        "radio": get_radio_data(9165, 1219, 44),
+        "interval": get_interval_data(9165, 1219, 44),
+        "position": get_position_data(9165, 1219, 44)
+    },
+    "Race Updates": {
+        "race_control": get_race_control_data(9165, 1219)
+    }
+}
 
 # Function to convert Cartesian coordinates to geospatial
 def cartesian_to_geospatial(x, y):
@@ -77,7 +112,10 @@ def get_driver_coordinates(driver_number, telemetry_data):
 
     # return latitudes, longitudes
 
-
+# Extract coordinates for each driver using the helper function
+x_coords_4, y_coords_4   = get_driver_coordinates("Driver 4", telemetry_data)
+x_coords_44, y_coords_44   = get_driver_coordinates("Driver 44", telemetry_data)
+x_coords_55, y_coords_55   = get_driver_coordinates("Driver 55", telemetry_data)
 
 # # Extract data for visualization
 # x_coords_55 = [point["x"] for point in telemetry_driver_55]
@@ -111,67 +149,6 @@ flag_images = {
 }
 
 def register_callbacks(app):
-    @app.callback(
-        Output("telemetry-data", "data"),  # Replace with your actual output
-        [Input("apply-button", "n_clicks")],  # Trigger on button click
-        [State("meeting-key-dropdown", "value"),
-        State("session-key-dropdown", "value")]
-    )
-    def apply_selections(n_clicks, selected_meeting, selected_session):
-        print("n_clicks = ", n_clicks)
-        print("selected_meeting = ", selected_meeting)
-        print("selected_session = ", selected_session)
-
-        if not n_clicks:
-            # Do not update if the button hasn't been clicked
-            raise dash.exceptions.PreventUpdate
-        
-        if not selected_meeting or not selected_session:
-            return "Both track and session type must be selected."
-        
-        # Example usage of track and session type
-        # meeting_key = selected_meeting
-        # session_key = selected_session
-
-        # Fetch telemetry data
-        telemetry_data = {
-            "Driver 55": {
-                "location": get_location_data(selected_session, selected_meeting, 55),
-                "car": get_car_data(selected_session, selected_meeting, 55),
-                "lap": get_lap_data(selected_session, selected_meeting, 55),
-                "stint": get_stints_data(selected_session, selected_meeting, 55),
-                "pit": get_pit_data(selected_session, selected_meeting, 55),
-                "radio": get_radio_data(selected_session, selected_meeting, 55),
-                "interval": get_interval_data(selected_session, selected_meeting, 55),
-                "position": get_position_data(selected_session, selected_meeting, 55)
-            },
-            "Driver 4": {
-                "location": get_location_data(selected_session, selected_meeting, 4),
-                "car": get_car_data(selected_session, selected_meeting, 4),
-                "lap": get_lap_data(selected_session, selected_meeting, 4),
-                "stint": get_stints_data(selected_session, selected_meeting, 4),
-                "pit": get_pit_data(selected_session, selected_meeting, 4),
-                "radio": get_radio_data(selected_session, selected_meeting, 4),
-                "interval": get_interval_data(selected_session, selected_meeting, 4),
-                "position": get_position_data(selected_session, selected_meeting, 4)
-            },
-                "Driver 44": {
-                "location": get_location_data(selected_session, selected_meeting, 44),
-                "car": get_car_data(selected_session, selected_meeting, 44),
-                "lap": get_lap_data(selected_session, selected_meeting, 44),
-                "stint": get_stints_data(selected_session, selected_meeting, 44),
-                "pit": get_pit_data(selected_session, selected_meeting, 44),
-                "radio": get_radio_data(selected_session, selected_meeting, 44),
-                "interval": get_interval_data(selected_session, selected_meeting, 44),
-                "position": get_position_data(selected_session, selected_meeting, 44)
-            },
-            "Race Updates": {
-                "race_control": get_race_control_data(selected_session, selected_meeting)
-            }
-        }
-        print("Telemetry data successfully generated.")
-        return telemetry_data
-
     @app.callback(
         Output("selected-driver", "data"),
         [Input({"type": "leaderboard-item", "index": ALL}, "n_clicks")],
@@ -220,38 +197,17 @@ def register_callbacks(app):
             Output("race-message-display", "children"),
             Output("category-display", "children"),
             Output("category-image", "src"),
-            Output("drs-display", "children"),
+            Output("drs-display", "children")
         ],  
         # Output for speed display
         [
             Input('interval-component', 'n_intervals'),
-            Input("telemetry-data", "data"),
             Input("selected-driver", "data"),
             Input("circuit-map", "relayoutData"),  # Capture user zoom/pan changes
         ],
-        State("saved-zoom", "data"), 
-        
+        State("saved-zoom", "data"),  # Retrieve the saved zoom state
     )
-    def update_driver_position(n_intervals, telemetry_data, selected_driver, relayout_data, saved_zoom):
-        # Handle empty telemetry_data
-        if not telemetry_data:
-            print("No telemetry data received.")
-            raise dash.exceptions.PreventUpdate
-
-        # Decode JSON data
-        try:
-            if isinstance(telemetry_data, str):
-                print(f"Decoding telemetry_data: {telemetry_data}")
-                telemetry_data = json.loads(telemetry_data)
-        except json.JSONDecodeError as e:
-            print(f"JSONDecodeError: {e}")
-            raise dash.exceptions.PreventUpdate
-
-        # Extract coordinates for each driver using the helper function
-        x_coords_4, y_coords_4   = get_driver_coordinates("Driver 4", telemetry_data)
-        x_coords_44, y_coords_44   = get_driver_coordinates("Driver 44", telemetry_data)
-        x_coords_55, y_coords_55   = get_driver_coordinates("Driver 55", telemetry_data)
-
+    def update_driver_position(n_intervals, selected_driver, relayout_data, saved_zoom):
         # Default to Driver 55 if no driver is selected
         if selected_driver not in telemetry_data:
             print(f"Invalid driver selected: {selected_driver}")

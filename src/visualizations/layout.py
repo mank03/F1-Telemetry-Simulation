@@ -47,29 +47,6 @@ def create_layout():
                                 id="circuit-map",
                                 config={'displayModeBar': False, "scrollZoom": True},
                                 style={'flex': '1', 'background-color': '#20242c'}
-                            ),
-                            dcc.Dropdown(
-                                id="meeting-key-dropdown",
-                                options=[
-                                    {"label": "Singapore", "value": 1219},
-                                ],
-                                placeholder="Select a track",
-                                value=1219,  # Default to Sinagpore
-                                style={"marginBottom": "10px"}
-                            ),
-                            dcc.Dropdown(
-                                id="session-key-dropdown",
-                                options=[
-                                    {"label": "Race", "value": 9165},
-                                ],
-                                placeholder="Select session type",
-                                value=9165,  # Default to race
-                                style={"marginBottom": "10px"}
-                            ),
-                            html.Button(
-                                "GO",
-                                id="apply-button",
-                                style={"width": "100%", "marginTop": "10px"}
                             )
                         ],
                         style={
@@ -80,6 +57,42 @@ def create_layout():
                         }
                     )
                 ]
+            ),
+            html.Div(
+                children=[
+                    dcc.Dropdown(
+                        id="meeting-key-dropdown",
+                        options=[
+                            {"label": "Singapore", "value": 1219},
+                        ],
+                        placeholder="Select a track",
+                        value=1219,  # Default to Sinagpore
+                        style={"marginBottom": "10px", "width" : "250px", 'alignItems' : 'right', 'justifyContent': 'right'}
+                    ),
+                    dcc.Dropdown(
+                        id="session-key-dropdown",
+                        options=[
+                            {"label": "Race", "value": 9165},
+                        ],
+                        placeholder="Select session type",
+                        value=9165,  # Default to race
+                        style={"marginBottom": "10px", "width" : "250px", 'alignItems' : 'right', 'justifyContent': 'right'}
+                    ),
+                    html.Button(
+                        "GO",
+                        id="apply-button",
+                        style={"width" : "100px", "marginBottom": "10px", 'alignItems' : 'right', 'justifyContent': 'right'}
+                    )
+                ],
+                style={
+                    'display': 'flex',
+                    'flexDirection': 'row',
+                    'backgroundColor': '#20242c',
+                    'padding': '10px',
+                    'gap': '75px',  # Add space between components
+                    'alignItems' : 'right',
+                    'justifyContent': 'right'
+                },
             ),
             html.Div(  # Speed gauge, rpm gauge throttle bar, brake bar, Lap, and tyre display
                 style={
@@ -327,8 +340,8 @@ def create_layout():
             dcc.Store(id="telemetry-data", storage_type="memory"),
             dcc.Interval(  # Interval component for updates
                 id='interval-component',
-                interval=1000,  # Time interval in milliseconds
-                n_intervals=0
+                interval=500,  # Time interval in milliseconds
+                n_intervals=250
             )
         ]
     )
